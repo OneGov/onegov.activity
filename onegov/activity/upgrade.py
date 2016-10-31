@@ -13,19 +13,26 @@ from sqlalchemy.dialects.postgresql import ARRAY, INT4RANGE
 
 @upgrade_task('Redesign occasion table')
 def redesign_occasion_table(context):
-    context.operations.drop_column('occasions', 'booking_start')
-    context.operations.drop_column('occasions', 'min_age')
-    context.operations.drop_column('occasions', 'max_age')
-    context.operations.drop_column('occasions', 'spots')
+    if context.has_column('occasions', 'booking_start'):
+        context.operations.drop_column('occasions', 'booking_start')
+    if context.has_column('occasions', 'min_age'):
+        context.operations.drop_column('occasions', 'min_age')
+    if context.has_column('occasions', 'max_age'):
+        context.operations.drop_column('occasions', 'max_age')
+    if context.has_column('occasions', 'spots'):
+        context.operations.drop_column('occasions', 'spots')
 
-    context.operations.add_column('occasions', Column(
-        'note', Text, nullable=True))
+    if not context.has_column('occasions', 'note'):
+        context.operations.add_column('occasions', Column(
+            'note', Text, nullable=True))
 
-    context.operations.add_column('occasions', Column(
-        'age', INT4RANGE, nullable=True))
+    if not context.has_column('occasions', 'age'):
+        context.operations.add_column('occasions', Column(
+            'age', INT4RANGE, nullable=True))
 
-    context.operations.add_column('occasions', Column(
-        'spots', INT4RANGE, nullable=True))
+    if not context.has_column('occasions', 'spots'):
+        context.operations.add_column('occasions', Column(
+            'spots', INT4RANGE, nullable=True))
 
     for occasion in context.session.query(Occasion).all():
         occasion.age = NumericRange(6, 17, bounds='[]')
@@ -48,7 +55,8 @@ def ensure_occasions_bookings_cannot_be_orphaned(context):
     context.operations.alter_column('bookings', 'occasion_id', nullable=False)
 
 
-@upgrade_task('Add reporter column')
+@upgrade_task('Add reporter column',
+              requires='onegov.activity:Add activity ages')
 def add_reporter_column(context):
     context.operations.add_column('activities', Column(
         'reporter', Text, nullable=True))
@@ -88,7 +96,8 @@ def add_start_before_end_constraint_to_occasions(context):
     )
 
 
-@upgrade_task('Add occasion durations')
+@upgrade_task('Add occasion durations',
+              requires='onegov.activity:Redesign occasion table')
 def add_occasion_durations(context):
 
     context.operations.add_column(
@@ -101,7 +110,8 @@ def add_occasion_durations(context):
     context.session.flush()
 
 
-@upgrade_task('Add occasion durations (second step)')
+@upgrade_task('Add occasion durations (second step)',
+              requires='Add occasion durations')
 def add_occasion_durations_second_step(context):
 
     # undo the damage from the last step
@@ -111,9 +121,9 @@ def add_occasion_durations_second_step(context):
     context.session.flush()
 
 
-@upgrade_task('Add activity ages')
+@upgrade_task('Add activity ages',
+              requires='onegov.activity:Add occasion durations (second step)')
 def add_activity_ages(context):
-
     context.operations.add_column(
         'activities', Column('ages', ARRAY(INT4RANGE), default=list))
 
@@ -124,7 +134,8 @@ def add_activity_ages(context):
     context.session.flush()
 
 
-@upgrade_task('Add activity ages (second step)')
+@upgrade_task('Add activity ages (second step)',
+              requires='onegov.activity:Add activity ages')
 def add_activity_ages_second_step(context):
 
     # undo the damage from the last step
@@ -144,7 +155,8 @@ def rebuild_models(context):
         'activities', Column('period_ids', ARRAY(UUID), default=list))
 
 
-@upgrade_task('Drop occasion state type')
+@upgrade_task('Drop occasion state type',
+              requires='onegov.activity:Rebuild models')
 def drop_occasion_state_type(context):
     context.operations.execute('DROP TYPE occasion_state')
 
@@ -152,4 +164,5 @@ def drop_occasion_state_type(context):
 @upgrade_task('Rebuild bookings')
 def rebuild_bookings(context):
     # having not created any bookings yet, we can rebuild them
-    context.operations.drop_table('bookings')
+    if context.has_table('bookings'):
+        context.operations.drop_table('bookings')
