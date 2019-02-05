@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from onegov.activity.collections import InvoiceItemCollection
+from onegov.activity.collections import InvoiceCollection
 from onegov.activity.iso20022 import extract_transactions, extract_code
 from onegov.activity.iso20022 import match_iso_20022_to_usernames
 from onegov.activity.utils import generate_xml, encode_invoice_code

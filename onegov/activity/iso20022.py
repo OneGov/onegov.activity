@@ -197,7 +197,7 @@ def encode(code):
 
 def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
     """ Takes an ISO20022 camt.053 file and matches it with the invoice
-    items in the :class:`~onegov.activity.collections.InvoiceItemCollection`.
+    items in the database.
 
     Raises an error if the given xml cannot be processed.
 

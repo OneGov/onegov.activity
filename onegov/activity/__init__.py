@@ -6,6 +6,7 @@ from onegov.activity.models import (
     Activity,
     Attendee,
     Booking,
+    Invoice,
     InvoiceItem,
     Occasion,
     OccasionDate,
@@ -17,11 +18,16 @@ from onegov.activity.collections import (
     ActivityFilter,
     AttendeeCollection,
     BookingCollection,
-    InvoiceItemCollection,
+    InvoiceCollection,
     OccasionCollection,
     PeriodCollection,
     PublicationRequestCollection
 )
+
+
+# deprecated
+class InvoiceItemCollection(object):
+    pass
 
 
 __all__ = [
@@ -29,14 +35,16 @@ __all__ = [
     'ActivityFilter',
     'Attendee',
     'Booking',
+    'Invoice',
     'InvoiceItem',
+    'InvoiceItemCollection',
     'Occasion',
     'OccasionDate',
     'Period',
     'ActivityCollection',
     'AttendeeCollection',
     'BookingCollection',
-    'InvoiceItemCollection',
+    'InvoiceCollection',
     'OccasionCollection',
     'PeriodCollection',
     'PublicationRequest',
