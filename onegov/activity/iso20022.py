@@ -6,8 +6,12 @@ from decimal import Decimal
 from itertools import groupby
 from lxml import etree
 from onegov.activity.models import InvoiceItem
+from onegov.activity.models import Invoice
+from onegov.activity.collections import InvoiceCollection
 from onegov.activity.utils import encode_invoice_code
 from pprint import pformat
+from onegov.user import User
+from sqlalchemy.orm import joinedload
 
 
 DOCUMENT_NS_EX = re.compile(r'.*<Document [^>]+>(.*)')
@@ -195,7 +199,7 @@ def encode(code):
         return None
 
 
-def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
+def match_iso_20022_to_usernames(xml, session, period_id, currency='CHF'):
     """ Takes an ISO20022 camt.053 file and matches it with the invoice
     items in the database.
 
@@ -208,10 +212,14 @@ def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
 
     """
 
-    # Get all paid transaction ids to be mark transactions which were paid
-    q = collection.for_invoice(None).query()
-    q = q.with_entities(InvoiceItem.tid, InvoiceItem.username)
-    q = q.group_by(InvoiceItem.tid, InvoiceItem.username)
+    def items(period_id=None):
+        invoices = InvoiceCollection(session, period_id=period_id)
+        return invoices.query_items().outerjoin(Invoice).outerjoin(User)
+
+    # Get all known transaction ids to check what was already paid
+    q = items()
+    q = q.with_entities(InvoiceItem.tid, User.username)
+    q = q.group_by(InvoiceItem.tid, User.username)
     q = q.filter(
         InvoiceItem.paid == True,
         InvoiceItem.source == 'xml'
@@ -220,9 +228,9 @@ def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
     paid_transaction_ids = {i.tid: i.username for i in q}
 
     # Get a list of known ref/code username matches to be used as a last resort
-    q = collection.for_invoice(None).query()
-    q = q.with_entities(InvoiceItem.code, InvoiceItem.username)
-    q = q.group_by(InvoiceItem.code, InvoiceItem.username)
+    q = items()
+    q = q.with_entities(InvoiceItem.code, User.username)
+    q = q.group_by(InvoiceItem.code, User.username)
     q = q.filter(
         InvoiceItem.paid == True,
         InvoiceItem.source == None
@@ -233,10 +241,10 @@ def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
         known_codes[i.code] = i.username
         known_refs[encode(i.code)] = i.username
 
-    # Get the items matching the given invoice
-    q = collection.for_invoice(invoice).query()
+    # Get the items matching the given period
+    q = items(period_id=period_id)
     q = q.with_entities(
-        InvoiceItem.username,
+        User.username,
         InvoiceItem.code,
         InvoiceItem.amount
     )
@@ -244,12 +252,13 @@ def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
         InvoiceItem.paid == False
     )
     q = q.order_by(
-        InvoiceItem.username
+        User.username
     )
 
     # Sum up the items to virtual invoices
     invoices = []
-    Invoice = namedtuple('Invoice', ('username', 'code', 'ref', 'amount'))
+    VirtualInvoice = namedtuple('Invoice', (
+        'username', 'code', 'ref', 'amount'))
 
     for username, items in groupby(q, key=lambda i: i.username):
         amount = Decimal('0.00')
@@ -257,7 +266,7 @@ def match_iso_20022_to_usernames(xml, collection, invoice, currency='CHF'):
         for item in items:
             amount += item.amount
 
-        invoices.append(Invoice(
+        invoices.append(VirtualInvoice(
             username=username,
             code=item.code,
             ref=encode(item.code),

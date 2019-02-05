@@ -156,7 +156,7 @@ def random_invoice_code():
 
     """
 
-    return f'q-{secrets.token_hex(3)[:5]}-{secrets.token_hex(3)[:5]}'
+    return f'q{secrets.token_hex(5)}'
 
 
 def as_invoice_code(invoice, username):

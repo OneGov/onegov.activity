@@ -23,6 +23,12 @@ class InvoiceCollection(GenericCollection):
 
         return q
 
+    def query_items(self):
+        return self.session.query(InvoiceItem)\
+            .filter(InvoiceItem.invoice_id.in_(
+                self.query().with_entities(Invoice.id).subquery()
+            ))
+
     def for_user_id(self, user_id):
         return self.__class__(self.session, user_id, self.period_id)
 
