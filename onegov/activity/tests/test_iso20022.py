@@ -129,17 +129,17 @@ def test_invoice_matching(session, owner, member,
     i1 = own_i1.add('Aaron', 'Billard', 250, 1)
     i2 = own_i1.add('Baron', 'Pokemon', 250, 1)
 
-    assert i1.code == i2.code
+    assert i1.invoice.code == i2.invoice.code
 
     i3 = mem_i1.add('Connie', 'Swimming', 250, 1)
     i4 = mem_i2.add('Donnie', 'Football', 250, 1)
 
-    assert i3.code != i4.code
+    assert i3.invoice.code != i4.invoice.code
 
     # match against a perfect match and one with a wrong amount
     xml = generate_xml([
-        dict(amount='500.00 CHF', note=i1.code),
-        dict(amount='500.00 CHF', note=i3.code)
+        dict(amount='500.00 CHF', note=i1.invoice.code),
+        dict(amount='500.00 CHF', note=i3.invoice.code)
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))
@@ -147,17 +147,17 @@ def test_invoice_matching(session, owner, member,
     assert len(transactions) == 2
     assert transactions[0].amount == Decimal(500.00)
     assert transactions[0].username == owner.username
-    assert transactions[0].note == i1.code == i2.code
+    assert transactions[0].note == i1.invoice.code == i2.invoice.code
     assert transactions[0].confidence == 1.0
     assert transactions[1].amount == Decimal(500.00)
     assert transactions[1].username == member.username
-    assert transactions[1].note == i3.code
+    assert transactions[1].note == i3.invoice.code
     assert transactions[1].confidence == 0.5
 
     # debit transactions are simply ignored
     xml = generate_xml([
-        dict(amount='-500.00 CHF', note=i1.code),
-        dict(amount='-500.00 CHF', note=i3.code)
+        dict(amount='-500.00 CHF', note=i1.invoice.code),
+        dict(amount='-500.00 CHF', note=i3.invoice.code)
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))
@@ -166,7 +166,7 @@ def test_invoice_matching(session, owner, member,
 
     # match against a code with extra information
     xml = generate_xml([
-        dict(amount='500.00 CHF', note='Code: ' + i1.code),
+        dict(amount='500.00 CHF', note='Code: ' + i1.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))
@@ -177,9 +177,9 @@ def test_invoice_matching(session, owner, member,
 
     # match against transactions from a different invoice
     xml = generate_xml([
-        dict(amount='500.00 CHF', note=i1.code),
-        dict(amount='250.00 CHF', note=i3.code),
-        dict(amount='250.00 CHF', note=i4.code),
+        dict(amount='500.00 CHF', note=i1.invoice.code),
+        dict(amount='250.00 CHF', note=i3.invoice.code),
+        dict(amount='250.00 CHF', note=i4.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p2.id))
@@ -197,7 +197,7 @@ def test_invoice_matching(session, owner, member,
 
     # match against the wrong currency
     xml = generate_xml([
-        dict(amount='250.00 EUR', note=i4.code),
+        dict(amount='250.00 EUR', note=i4.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p2.id))
@@ -228,8 +228,8 @@ def test_invoice_matching(session, owner, member,
 
     # match against duplicate bookings
     xml = generate_xml([
-        dict(amount='250.00 CHF', note=i4.code),
-        dict(amount='250.00 CHF', note=i4.code),
+        dict(amount='250.00 CHF', note=i4.invoice.code),
+        dict(amount='250.00 CHF', note=i4.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p2.id))
@@ -243,8 +243,8 @@ def test_invoice_matching(session, owner, member,
 
     # match against split bookings
     xml = generate_xml([
-        dict(amount='125.00 CHF', note=i1.code),
-        dict(amount='125.00 CHF', note=i1.code),
+        dict(amount='125.00 CHF', note=i1.invoice.code),
+        dict(amount='125.00 CHF', note=i1.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p2.id))
@@ -258,7 +258,9 @@ def test_invoice_matching(session, owner, member,
 
     # match against reference numbers
     xml = generate_xml([
-        dict(amount='500.00 CHF', reference=encode_invoice_code(i1.code)),
+        dict(amount='500.00 CHF', reference=encode_invoice_code(
+            i1.invoice.code
+        )),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))
@@ -269,8 +271,12 @@ def test_invoice_matching(session, owner, member,
 
     # match against a mix of reference numbers and codes
     xml = generate_xml([
-        dict(amount='500.00 CHF', reference=encode_invoice_code(i1.code)),
-        dict(amount='250.00 CHF', note=i3.code),
+        dict(
+            amount='500.00 CHF',
+            reference=encode_invoice_code(i1.invoice.code)),
+        dict(
+            amount='250.00 CHF',
+            note=i3.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))
@@ -284,7 +290,7 @@ def test_invoice_matching(session, owner, member,
     # ignore invalid esr references
     xml = generate_xml([
         dict(amount='500.00 CHF', reference='booyah'),
-        dict(amount='250.00 CHF', note=i3.code),
+        dict(amount='250.00 CHF', note=i3.invoice.code),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))
@@ -300,8 +306,8 @@ def test_invoice_matching(session, owner, member,
     xml = generate_xml([
         dict(
             amount='500.00 CHF',
-            reference=encode_invoice_code(i1.code),
-            note=i1.code
+            reference=encode_invoice_code(i1.invoice.code),
+            note=i1.invoice.code
         ),
     ])
 
@@ -315,7 +321,7 @@ def test_invoice_matching(session, owner, member,
         dict(
             amount='500.00 CHF',
             reference='000127131108141601011502061',
-            note=i1.code
+            note=i1.invoice.code
         ),
     ])
 
@@ -328,7 +334,7 @@ def test_invoice_matching(session, owner, member,
     xml = generate_xml([
         dict(
             amount='500.00 CHF',
-            reference=encode_invoice_code(i1.code),
+            reference=encode_invoice_code(i1.invoice.code),
             note='qeb3afd0e43'
         ),
     ])
@@ -346,8 +352,8 @@ def test_invoice_matching(session, owner, member,
     i1.source = 'xml'
 
     xml = generate_xml([
-        dict(amount='250 CHF', note=i1.code, tid='foobar'),
-        dict(amount='250 CHF', note=i1.code, tid=None),
+        dict(amount='250 CHF', note=i1.invoice.code, tid='foobar'),
+        dict(amount='250 CHF', note=i1.invoice.code, tid=None),
     ])
 
     transactions = list(match_iso_20022_to_usernames(xml, session, p1.id))

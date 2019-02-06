@@ -83,9 +83,6 @@ class Invoice(Base, TimestampMixin):
             unit=unit,
             quantity=quantity,
             invoice_id=self.id,
-
-            # deprecated
-            code=self.code,
             **kwargs
         )
 

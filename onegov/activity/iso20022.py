@@ -228,8 +228,8 @@ def match_iso_20022_to_usernames(xml, session, period_id, currency='CHF'):
 
     # Get a list of known ref/code username matches to be used as a last resort
     q = items()
-    q = q.with_entities(InvoiceItem.code, User.username)
-    q = q.group_by(InvoiceItem.code, User.username)
+    q = q.with_entities(Invoice.code, User.username)
+    q = q.group_by(Invoice.code, User.username)
     q = q.filter(
         InvoiceItem.paid == True,
         InvoiceItem.source == None
@@ -244,7 +244,7 @@ def match_iso_20022_to_usernames(xml, session, period_id, currency='CHF'):
     q = items(period_id=period_id)
     q = q.with_entities(
         User.username,
-        InvoiceItem.code,
+        Invoice.code,
         InvoiceItem.amount
     )
     q = q.filter(

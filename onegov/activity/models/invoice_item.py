@@ -30,9 +30,6 @@ class InvoiceItem(Base, TimestampMixin, PayableManyTimes):
     #: the invoice this item belongs to
     invoice_id = Column(UUID, ForeignKey('invoices.id'))
 
-    #: the code of the invoice used to identify the invoice through e-banking
-    code = Column(Text, nullable=False)
-
     #: the item group (all items with the same text are visually grouped)
     group = Column(Text, nullable=False)
 
