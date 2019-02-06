@@ -3,6 +3,7 @@ from onegov.activity.models import Invoice, InvoiceItem
 from onegov.core.collection import GenericCollection
 from onegov.activity.utils import random_invoice_code
 from sqlalchemy import func, and_, not_
+from onegov.user import User
 
 
 class InvoiceCollection(GenericCollection):
@@ -30,10 +31,25 @@ class InvoiceCollection(GenericCollection):
             ))
 
     def for_user_id(self, user_id):
-        return self.__class__(self.session, user_id, self.period_id)
+        return self.__class__(self.session, self.period_id, user_id)
 
     def for_period_id(self, period_id):
-        return self.__class__(self.session, self.user_id, period_id)
+        return self.__class__(self.session, period_id, self.user_id)
+
+    @property
+    def invoice(self):
+        # XXX used for compatibility with legacy implementation in Feriennet
+        return self.period_id and self.period_id.hex or None
+
+    @property
+    def username(self):
+        if self.user_id:
+            user = self.session.query(User)\
+                .with_entities(User.username)\
+                .filter_by(id=self.user_id)\
+                .first()
+
+            return user and user.username or None
 
     @property
     def model_class(self):

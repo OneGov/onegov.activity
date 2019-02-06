@@ -7,7 +7,6 @@ from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Numeric
 from sqlalchemy import Text
-from sqlalchemy import cast
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from uuid import uuid4
@@ -71,18 +70,3 @@ class InvoiceItem(Base, TimestampMixin, PayableManyTimes):
     def validate_source(self, key, value):
         assert value in (None, 'xml', 'stripe_connect')
         return value
-
-    @property
-    def discourage_changes(self):
-        return self.source == 'xml'
-
-    @property
-    def disable_changes(self):
-        if not self.source:
-            return False
-
-        if self.source == 'xml':
-            return False
-
-        states = {p.state for p in self.payments}
-        return 'open' in states or 'paid' in states

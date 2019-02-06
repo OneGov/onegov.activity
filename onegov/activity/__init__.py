@@ -25,11 +25,6 @@ from onegov.activity.collections import (
 )
 
 
-# deprecated
-class InvoiceItemCollection(object):
-    pass
-
-
 __all__ = [
     'Activity',
     'ActivityFilter',
@@ -37,7 +32,6 @@ __all__ = [
     'Booking',
     'Invoice',
     'InvoiceItem',
-    'InvoiceItemCollection',
     'Occasion',
     'OccasionDate',
     'Period',
