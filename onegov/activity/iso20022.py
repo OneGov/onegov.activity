@@ -11,7 +11,6 @@ from onegov.activity.collections import InvoiceCollection
 from onegov.activity.utils import encode_invoice_code
 from pprint import pformat
 from onegov.user import User
-from sqlalchemy.orm import joinedload
 
 
 DOCUMENT_NS_EX = re.compile(r'.*<Document [^>]+>(.*)')
