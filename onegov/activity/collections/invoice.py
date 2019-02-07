@@ -1,3 +1,4 @@
+from cached_property import cached_property
 from decimal import Decimal
 from onegov.activity.models import Invoice, InvoiceItem
 from onegov.core.collection import GenericCollection
@@ -36,13 +37,14 @@ class InvoiceCollection(GenericCollection):
     def for_period_id(self, period_id):
         return self.__class__(self.session, period_id, self.user_id)
 
-    @property
+    @cached_property
     def invoice(self):
         # XXX used for compatibility with legacy implementation in Feriennet
         return self.period_id and self.period_id.hex or None
 
-    @property
+    @cached_property
     def username(self):
+        # XXX used for compatibility with legacy implementation in Feriennet
         if self.user_id:
             user = self.session.query(User)\
                 .with_entities(User.username)\
