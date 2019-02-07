@@ -516,17 +516,17 @@ def add_invoices(context):
 
     created = {}
 
-    for opt in mapping.values():
-        id = (opt.record.period_id, opt.record.user_id)
+    for m in mapping.values():
+        id = (m.record.period_id, m.record.user_id)
 
         if id in created:
-            opt.invoice = created[id]
+            m.invoice = created[id]
             continue
 
-        created[id] = opt.invoice = invoices.add(
-            period_id=opt.record.period_id,
-            user_id=opt.record.user_id,
-            code=opt.record.code)
+        created[id] = m.invoice = invoices.add(
+            period_id=m.record.period_id,
+            user_id=m.record.user_id,
+            code=m.record.code)
 
     def invoice_id(item):
         return mapping[item.id].invoice.id
